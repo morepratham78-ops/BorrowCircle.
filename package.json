@@ -1,0 +1,24 @@
+{
+  "name": "borrowcircle",
+  "version": "1.0.0",
+  "description": "BorrowCircle — Indian Hyperlocal Equipment & Resource Rental Marketplace",
+  "scripts": {
+    "start": "node server/dist/index.js",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "build:server": "cd server && npm run build",
+    "build:client": "cd client && npm run build",
+    "build": "cd server && npm run build && cd ../client && npm run build",
+    "seed": "cd server && npm run seed"
+  },
+  "keywords": [
+    "borrowcircle",
+    "hyperlocal",
+    "rental-marketplace",
+    "peer-to-peer",
+    "india",
+    "peerby"
+  ],
+  "author": "BorrowCircle Team",
+  "license": "MIT"
+}

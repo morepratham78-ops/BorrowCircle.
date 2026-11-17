@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.env
+
+# SQLite Databases & Local Storage
+*.db
+*.db-journal
+dev.db
+dev.db-journal
+server/prisma/*.db
+server/prisma/*.db-journal
+
+# Production Builds
+dist/
+build/
+*.tsbuildinfo
+
+# Editor and OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# Temporary developer test & debug scripts
+scratch/
+server/test_amit_api.js
+server/test_regression_lifecycle.js
+server/test_server.js
+server/check_notifs.js
+server/check_rahul_items.js
+server/check_users_mode.js
+server/debug_bookings.js
+server/debug_sony.js
+
+# Local user uploads
+uploads/
+server/uploads/
+

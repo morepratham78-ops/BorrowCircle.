@@ -1,0 +1,347 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    String                 @id @default(uuid())
+  name                  String
+  email                 String                 @unique
+  phone                 String                 @unique
+  passwordHash          String
+  city                  String                 @default("Bengaluru")
+  area                  String                 @default("Indiranagar")
+  pincode               String                 @default("560038")
+  avatar                String?
+  role                  String                 @default("USER") // "USER" or "ADMIN"
+  accountMode           String                 @default("BORROWER") // "BORROWER" or "LENDER"
+  isSuspended           Boolean                @default(false)
+  suspensionReason      String?
+  isPhoneVerified       Boolean                @default(false)
+  isEmailVerified       Boolean                @default(false)
+  isIdentityVerified    Boolean                @default(false)
+  aadharVerified        Boolean                @default(false)
+  trustScore            Int                    @default(75)
+  rating                Float                  @default(5.0)
+  ratingCount           Int                    @default(0)
+  completedRentalsCount Int                    @default(0)
+  completedLendsCount   Int                    @default(0)
+  ecoKgCo2Saved         Float                  @default(0.0)
+  rewardPoints          Int                    @default(100)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  ownedItems            Item[]                 @relation("OwnerItems")
+  receivedBookings      Booking[]              @relation("ReceiverBookings")
+  lendedBookings        Booking[]              @relation("LenderBookings")
+  sentMessages          Message[]              @relation("SentMessages")
+  receivedMessages      Message[]              @relation("ReceivedMessages")
+  notifications         Notification[]
+  reviewsGiven          Review[]               @relation("ReviewsGiven")
+  reviewsReceived       Review[]               @relation("ReviewsReceived")
+  wishlist              WishlistItem[]
+  identityVerifications IdentityVerification[]
+  phoneVerifications    PhoneVerification[]
+  damageClaimsFiled     DamageClaim[]          @relation("ClaimsFiled")
+  damageClaimsAgainst   DamageClaim[]          @relation("ClaimsAgainst")
+  paymentsMade          Payment[]
+  wishWallPosts         WishWallPost[]
+}
+
+model IdentityVerification {
+  id                   String    @id @default(uuid())
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentType         String    @default("AADHAAR") // AADHAAR, PAN, DRIVING_LICENSE
+  documentNumberMasked String
+  demoOtp              String    @default("123456")
+  status               String    @default("PENDING") // PENDING, VERIFIED, FAILED
+  failureReason        String?
+  verifiedAt           DateTime?
+  createdAt            DateTime  @default(now())
+}
+
+model PhoneVerification {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone      String
+  demoOtp    String
+  status     String    @default("PENDING")
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+model Category {
+  id           String         @id @default(uuid())
+  name         String         @unique
+  slug         String         @unique
+  icon         String
+  description  String
+  displayOrder Int            @default(0)
+  items        Item[]
+  wishWallPosts WishWallPost[]
+}
+
+model Item {
+  id                   String            @id @default(uuid())
+  title                String
+  slug                 String            @unique
+  description          String
+  categoryId           String
+  category             Category          @relation(fields: [categoryId], references: [id])
+  condition            String            @default("EXCELLENT") // EXCELLENT, VERY_GOOD, GOOD, FAIR
+  purchasePrice        Float?
+  replacementValue     Float
+  hourlyRate           Float
+  dailyRate            Float?
+  minHours             Int               @default(1)
+  securityDeposit      Float             @default(500)
+  city                 String
+  area                 String
+  pincode              String
+  pickupAddress        String
+  isDeliveryAvailable  Boolean           @default(false)
+  deliveryFee          Float             @default(0)
+  usageInstructions    String?
+  safetyGuidelines     String?
+  damageConditions     String?
+  status               String            @default("PENDING_APPROVAL") // PENDING_APPROVAL, APPROVED, REJECTED, SUSPENDED
+  rejectionReason      String?
+  ownerId              String
+  owner                User              @relation("OwnerItems", fields: [ownerId], references: [id], onDelete: Cascade)
+  passportSerial       String?
+  maintenanceLog       String?
+  viewsCount           Int               @default(0)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  images               ItemImage[]
+  bookings             Booking[]
+  reviews              Review[]
+  wishlistedBy         WishlistItem[]
+  damageClaims         DamageClaim[]
+}
+
+model ItemImage {
+  id        String   @id @default(uuid())
+  itemId    String
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  url       String
+  isPrimary Boolean  @default(false)
+}
+
+model Booking {
+  id                       String              @id @default(uuid())
+  bookingNumber            String              @unique
+  itemId                   String
+  item                     Item                @relation(fields: [itemId], references: [id])
+  receiverId               String
+  receiver                 User                @relation("ReceiverBookings", fields: [receiverId], references: [id])
+  lenderId                 String
+  lender                   User                @relation("LenderBookings", fields: [lenderId], references: [id])
+  status                   String              @default("PENDING") 
+  // PENDING, APPROVED, REJECTED, PAYMENT_PENDING, CONFIRMED, READY_FOR_PICKUP, ACTIVE, EXTENSION_REQUESTED, RETURN_REQUESTED, INSPECTION_PENDING, COMPLETED, CANCELLED, DISPUTED
+
+  paymentStatus            String              @default("NOT_INITIATED")
+  // NOT_INITIATED, PENDING, SUCCESSFUL, FAILED, CANCELLED, REFUNDED
+
+  durationHours            Float
+  hourlyRate               Float
+  rentalAmount             Float
+  receiverFee              Float               @default(15)
+  lenderFee                Float               @default(15)
+  securityDeposit          Float               @default(500)
+  deliveryFee              Float               @default(0)
+  totalPayableAmount       Float
+  lenderEarnings           Float
+  platformRevenue          Float
+
+  startTime                DateTime
+  expectedEndTime          DateTime
+  actualStartTime          DateTime?
+  actualEndTime            DateTime?
+
+  handoverOtp              String?
+  handoverOtpExpiresAt     DateTime?
+  isHandoverVerified       Boolean             @default(false)
+  handoverVerifiedAt       DateTime?
+
+  returnOtp                String?
+  returnOtpExpiresAt       DateTime?
+  isReturnVerified         Boolean             @default(false)
+  returnVerifiedAt         DateTime?
+
+  inspectionDurationMinutes Int                 @default(15)
+  inspectionEndTime        DateTime?
+  inspectionStatus         String              @default("PENDING") // PENDING, CLEAN, DAMAGE_REPORTED
+
+  notes                    String?
+  cancellationReason       String?
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+
+  extensionRequests        ExtensionRequest[]
+  inspectionRecords        InspectionRecord[]
+  damageClaims             DamageClaim[]
+  payments                 Payment[]
+  reviews                  Review[]
+  messages                 Message[]
+}
+
+model ExtensionRequest {
+  id               String    @id @default(uuid())
+  bookingId        String
+  booking          Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  additionalHours  Float
+  additionalAmount Float
+  status           String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  requestedAt      DateTime  @default(now())
+  respondedAt      DateTime?
+}
+
+model InspectionRecord {
+  id             String   @id @default(uuid())
+  bookingId      String
+  booking        Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  stage          String   // HANDOVER, RETURN
+  conditionNotes String
+  imageUrls      String   // JSON string of photo URLs
+  hasDamage      Boolean  @default(false)
+  damageNotes    String?
+  createdAt      DateTime @default(now())
+}
+
+model DamageClaim {
+  id                   String   @id @default(uuid())
+  bookingId            String
+  booking              Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  itemId               String
+  item                 Item     @relation(fields: [itemId], references: [id])
+  claimantId           String
+  claimant             User     @relation("ClaimsFiled", fields: [claimantId], references: [id])
+  respondentId         String
+  respondent           User     @relation("ClaimsAgainst", fields: [respondentId], references: [id])
+  description          String
+  estimatedRepairCost  Float
+  replacementValue     Float
+  evidenceImages       String   // JSON string of images
+  respondentExplanation String?
+  adminDecision        String?
+  resolutionAmount     Float?
+  status               String   @default("FILED") // FILED, UNDER_REVIEW, RESOLVED, REJECTED
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model Payment {
+  id              String   @id @default(uuid())
+  bookingId       String
+  booking         Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  payerId         String
+  payer           User     @relation(fields: [payerId], references: [id])
+  amount          Float
+  currency        String   @default("INR")
+  paymentMethod   String   @default("UPI") // UPI, CARD, NETBANKING
+  upiId           String?
+  transactionId   String   @unique
+  status          String   @default("SUCCESS") // SUCCESS, PENDING, FAILED, REFUNDED
+  paymentType     String   @default("RENTAL_AND_DEPOSIT") // RENTAL_AND_DEPOSIT, EXTENSION, DEPOSIT_REFUND, DAMAGE_SETTLEMENT
+  createdAt       DateTime @default(now())
+}
+
+model Review {
+  id           String   @id @default(uuid())
+  bookingId    String
+  booking      Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  itemId       String
+  item         Item     @relation(fields: [itemId], references: [id])
+  reviewerId   String
+  reviewer     User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  revieweeId   String
+  reviewee     User     @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+  role         String   // LENDER, RECEIVER
+  rating       Int      // 1 to 5
+  comment      String
+  createdAt    DateTime @default(now())
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  bookingId  String?
+  booking    Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  content    String
+  mediaUrl   String?
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   // BOOKING, PAYMENT, HANDOVER, RETURN, CHAT, SYSTEM
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model WishlistItem {
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId             String
+  item               Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  notifyWhenAvailable Boolean  @default(true)
+  createdAt          DateTime @default(now())
+
+  @@unique([userId, itemId])
+}
+
+model CommunityGroup {
+  id          String   @id @default(uuid())
+  name        String
+  type        String   // COLLEGE, HOUSING_SOCIETY, NEIGHBORHOOD
+  city        String
+  area        String
+  memberCount Int      @default(0)
+  description String
+  icon        String
+  createdAt   DateTime @default(now())
+}
+
+model WishWallPost {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemTitle         String
+  categoryId        String
+  category          Category @relation(fields: [categoryId], references: [id])
+  maxBudgetPerHour  Float
+  neededHours       Float
+  city              String
+  area              String
+  description       String
+  status            String   @default("OPEN") // OPEN, FULFILLED, CLOSED
+  createdAt         DateTime @default(now())
+}
+
+model PlatformConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String
+  updatedAt   DateTime @updatedAt
+}
